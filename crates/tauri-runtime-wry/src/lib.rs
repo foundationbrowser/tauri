@@ -5034,6 +5034,13 @@ You may have it installed on another user account, but it is not available for t
           match event {
             wry::PageLoadEvent::Started => tauri_runtime::webview::PageLoadEvent::Started,
             wry::PageLoadEvent::Finished => tauri_runtime::webview::PageLoadEvent::Finished,
+            wry::PageLoadEvent::Failed(error) => {
+              tauri_runtime::webview::PageLoadEvent::Failed(tauri_runtime::webview::PageLoadError {
+                code: error.code,
+                domain: error.domain,
+                description: error.description,
+              })
+            }
           },
         )
       };

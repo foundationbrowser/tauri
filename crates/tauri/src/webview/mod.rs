@@ -18,7 +18,7 @@ pub use cookie;
 use http::HeaderMap;
 use serde::Serialize;
 use tauri_macros::default_runtime;
-pub use tauri_runtime::webview::{NewWindowFeatures, PageLoadEvent, ScrollBarStyle};
+pub use tauri_runtime::webview::{NewWindowFeatures, PageLoadError, PageLoadEvent, ScrollBarStyle};
 // Remove this re-export in v3
 pub use tauri_runtime::Cookie;
 #[cfg(desktop)]
@@ -117,7 +117,7 @@ impl<'a> PageLoadPayload<'a> {
 
   /// The page load event.
   pub fn event(&self) -> PageLoadEvent {
-    self.event
+    self.event.clone()
   }
 }
 
@@ -676,6 +676,9 @@ tauri::Builder::default()
           }
           PageLoadEvent::Finished => {
             println!("{} finished loading", payload.url());
+          }
+          PageLoadEvent::Failed(error) => {
+            println!("{} failed loading: {}", payload.url(), error.description);
           }
         }
       });

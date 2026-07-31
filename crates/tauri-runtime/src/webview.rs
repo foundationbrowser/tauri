@@ -80,12 +80,20 @@ pub struct CreationContext<'a, 'b> {
 }
 
 /// Kind of event for the page load handler.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PageLoadError {
+  pub code: i64,
+  pub domain: String,
+  pub description: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PageLoadEvent {
   /// Page started to load.
   Started,
   /// Page finished loading.
   Finished,
+  Failed(PageLoadError),
 }
 
 /// Information about the webview that initiated a new window request.

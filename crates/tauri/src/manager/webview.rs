@@ -291,7 +291,10 @@ impl<R: Runtime> WebviewManager<R> {
     pending
       .on_page_load_handler
       .replace(Box::new(move |url, event| {
-        let payload = PageLoadPayload { url: &url, event };
+        let payload = PageLoadPayload {
+          url: &url,
+          event: event.clone(),
+        };
 
         if let Some(w) = app_manager_.get_webview(&label) {
           if let Some(on_page_load) = &app_manager_.webview.on_page_load {
