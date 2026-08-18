@@ -39,6 +39,8 @@ type OnPageLoadHandler = dyn Fn(Url, PageLoadEvent) + Send;
 
 type DocumentTitleChangedHandler = dyn Fn(String) + Send + 'static;
 
+type DocumentCloseHandler = dyn Fn() + Send + 'static;
+
 type DownloadHandler = dyn Fn(DownloadEvent) -> bool + Send + Sync;
 
 #[cfg(any(target_os = "macos", target_os = "ios"))]
@@ -223,6 +225,9 @@ pub struct PendingWebview<T: UserEvent, R: Runtime<T>> {
 
   pub document_title_changed_handler: Option<Box<DocumentTitleChangedHandler>>,
 
+  /// A handler for the page closing itself with `window.close`.
+  pub document_close_handler: Option<Box<DocumentCloseHandler>>,
+
   /// The resolved URL to load on the webview.
   pub url: String,
 
@@ -259,6 +264,7 @@ impl<T: UserEvent, R: Runtime<T>> PendingWebview<T, R> {
         navigation_handler: None,
         new_window_handler: None,
         document_title_changed_handler: None,
+        document_close_handler: None,
         url: "tauri://localhost".to_string(),
         #[cfg(target_os = "android")]
         on_webview_created: None,

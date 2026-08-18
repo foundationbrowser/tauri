@@ -63,6 +63,7 @@ pub(crate) type UriSchemeProtocolHandler =
   Box<dyn Fn(&str, http::Request<Vec<u8>>, UriSchemeResponder) + Send + Sync>;
 pub(crate) type OnPageLoad<R> = dyn Fn(Webview<R>, PageLoadPayload<'_>) + Send + Sync + 'static;
 pub(crate) type OnDocumentTitleChanged<R> = dyn Fn(Webview<R>, String) + Send + 'static;
+pub(crate) type OnDocumentClose<R> = dyn Fn(Webview<R>) + Send + 'static;
 pub(crate) type DownloadHandler<R> = dyn Fn(Webview<R>, DownloadEvent<'_>) -> bool + Send + Sync;
 
 #[derive(Clone, Serialize)]
@@ -276,6 +277,7 @@ unstable_struct!(
     pub(crate) new_window_handler: Option<Box<NewWindowHandler<R>>>,
     pub(crate) on_page_load_handler: Option<Box<OnPageLoad<R>>>,
     pub(crate) document_title_changed_handler: Option<Box<OnDocumentTitleChanged<R>>>,
+    pub(crate) document_close_handler: Option<Box<OnDocumentClose<R>>>,
     pub(crate) download_handler: Option<Arc<DownloadHandler<R>>>,
   }
 );
@@ -354,6 +356,7 @@ async fn create_window(app: tauri::AppHandle) {
       new_window_handler: None,
       on_page_load_handler: None,
       document_title_changed_handler: None,
+      document_close_handler: None,
       download_handler: None,
     }
   }
@@ -433,6 +436,7 @@ async fn create_window(app: tauri::AppHandle) {
       new_window_handler: None,
       on_page_load_handler: None,
       document_title_changed_handler: None,
+      document_close_handler: None,
       download_handler: None,
     }
   }
@@ -599,6 +603,23 @@ tauri::Builder::default()
     self
   }
 
+  /// Defines a closure to be executed when the page closes itself with
+  /// [window.close].
+  ///
+  /// A page may only close a window that was opened by script, so this is how a
+  /// webview created for [`Self::on_new_window`] asks to go away once it is
+  /// done. Nothing closes on its own: the closure owns the window and decides.
+  ///
+  /// # Platform-specific
+  ///
+  /// - **Linux / Windows / Android / iOS**: Not supported.
+  ///
+  /// [window.close]: https://developer.mozilla.org/en-US/docs/Web/API/Window/close
+  pub fn on_document_close<F: Fn(Webview<R>) + Send + 'static>(mut self, f: F) -> Self {
+    self.document_close_handler.replace(Box::new(f));
+    self
+  }
+
   /// Set a download event handler to be notified when a download is requested or finished.
   ///
   /// Returning `false` prevents the download from happening on a [`DownloadEvent::Requested`] event.
@@ -737,6 +758,16 @@ tauri::Builder::default()
             document_title_changed_handler(w, title);
           }
         }));
+    }
+
+    if let Some(document_close_handler) = self.document_close_handler.take() {
+      let label = pending.label.clone();
+      let manager = manager.manager_owned();
+      pending.document_close_handler.replace(Box::new(move || {
+        if let Some(w) = manager.get_webview(&label) {
+          document_close_handler(w);
+        }
+      }));
     }
     pending.web_resource_request_handler = self.web_resource_request_handler.take();
 

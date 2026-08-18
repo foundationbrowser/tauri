@@ -4967,6 +4967,10 @@ You may have it installed on another user account, but it is not available for t
       webview_builder.with_document_title_changed_handler(document_title_changed_handler)
   }
 
+  if let Some(document_close_handler) = pending.document_close_handler {
+    webview_builder = webview_builder.with_document_close_handler(document_close_handler)
+  }
+
   let webview_bounds = if let Some(bounds) = webview_attributes.bounds {
     let bounds: RectWrapper = bounds.into();
     let bounds = bounds.0;

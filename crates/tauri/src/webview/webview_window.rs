@@ -341,6 +341,29 @@ impl<'a, R: Runtime, M: Manager<R>> WebviewWindowBuilder<'a, R, M> {
     self
   }
 
+  /// Defines a closure to be executed when the page closes itself with
+  /// [window.close].
+  ///
+  /// A page may only close a window that was opened by script, so this is how a
+  /// window created for [`WebviewBuilder::on_new_window`] asks to go away once
+  /// it is done. Nothing closes on its own: the closure owns the window and
+  /// decides.
+  ///
+  /// # Platform-specific
+  ///
+  /// - **Linux / Windows / Android / iOS**: Not supported.
+  ///
+  /// [window.close]: https://developer.mozilla.org/en-US/docs/Web/API/Window/close
+  pub fn on_document_close<F: Fn(WebviewWindow<R>) + Send + 'static>(mut self, f: F) -> Self {
+    self.webview_builder = self.webview_builder.on_document_close(move |webview| {
+      f(WebviewWindow {
+        window: webview.window(),
+        webview,
+      })
+    });
+    self
+  }
+
   /// Set a download event handler to be notified when a download is requested or finished.
   ///
   /// Returning `false` prevents the download from happening on a [`DownloadEvent::Requested`] event.
