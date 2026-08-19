@@ -1508,6 +1508,10 @@ pub enum WebviewMessage {
     Sender<()>,
     tracing::Span,
   ),
+  // Only the WebKit webview can wait for a script, and the wait is the whole
+  // point of the message, so there is no timing span to carry either way.
+  #[cfg(any(target_os = "macos", target_os = "ios"))]
+  EvaluateAsyncScriptWithCallback(String, Box<dyn Fn(String) + Send + 'static>),
   CookiesForUrl(Url, Sender<Result<Vec<tauri_runtime::Cookie<'static>>>>),
   Cookies(Sender<Result<Vec<tauri_runtime::Cookie<'static>>>>),
   SetCookie(tauri_runtime::Cookie<'static>),
@@ -1900,6 +1904,31 @@ impl<T: UserEvent> WebviewDispatch<T> for WryWebviewDispatcher<T> {
         WebviewMessage::EvaluateScriptWithCallback(script.into(), Box::new(callback)),
       ),
     )
+  }
+
+  #[cfg(any(target_os = "macos", target_os = "ios"))]
+  fn eval_async_script_with_callback<S: Into<String>>(
+    &self,
+    script: S,
+    callback: impl Fn(String) + Send + 'static,
+  ) -> Result<()> {
+    send_user_message(
+      &self.context,
+      Message::Webview(
+        *self.window_id.lock().unwrap(),
+        self.webview_id,
+        WebviewMessage::EvaluateAsyncScriptWithCallback(script.into(), Box::new(callback)),
+      ),
+    )
+  }
+
+  #[cfg(not(any(target_os = "macos", target_os = "ios")))]
+  fn eval_async_script_with_callback<S: Into<String>>(
+    &self,
+    _script: S,
+    _callback: impl Fn(String) + Send + 'static,
+  ) -> Result<()> {
+    Err(Error::AsyncScriptUnsupported)
   }
 
   fn set_zoom(&self, scale_factor: f64) -> Result<()> {
@@ -3786,6 +3815,12 @@ fn handle_user_message<T: UserEvent>(
           #[cfg(not(all(feature = "tracing", not(target_os = "android"))))]
           WebviewMessage::EvaluateScriptWithCallback(script, callback) => {
             if let Err(e) = webview.evaluate_script_with_callback(&script, callback) {
+              log::error!("{e}");
+            }
+          }
+          #[cfg(any(target_os = "macos", target_os = "ios"))]
+          WebviewMessage::EvaluateAsyncScriptWithCallback(script, callback) => {
+            if let Err(e) = webview.evaluate_async_script_with_callback(&script, callback) {
               log::error!("{e}");
             }
           }

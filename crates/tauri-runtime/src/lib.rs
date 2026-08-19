@@ -167,6 +167,8 @@ pub enum Error {
   FailedToRemoveDataStore,
   #[error("Could not find the webview runtime, make sure it is installed")]
   WebviewRuntimeNotInstalled,
+  #[error("this platform cannot wait for a script to resolve")]
+  AsyncScriptUnsupported,
 }
 
 /// Result type.
@@ -595,6 +597,24 @@ pub trait WebviewDispatch<T: UserEvent>: Debug + Clone + Send + Sync + Sized + '
   ///
   /// Exception is ignored because of the limitation on Windows. You can catch it yourself and return as string as a workaround.
   fn eval_script_with_callback<S: Into<String>>(
+    &self,
+    script: S,
+    callback: impl Fn(String) + Send + 'static,
+  ) -> Result<()>;
+
+  /// Evaluate JavaScript that has to wait for something on the webview this
+  /// [`WebviewDispatch`] represents, and call back with what it waited for.
+  ///
+  /// The script is the body of an async function rather than an expression, so
+  /// it answers with `return` and may `await` on the way there. The resolved
+  /// value is serialized into a JSON string the same way
+  /// [`WebviewDispatch::eval_script_with_callback`] serializes its result, and a
+  /// value that will not serialize, a rejected promise and a thrown exception
+  /// all call back with an empty string.
+  ///
+  /// Platforms that cannot wait answer [`Error::AsyncScriptUnsupported`]
+  /// rather than running the script as though it could not.
+  fn eval_async_script_with_callback<S: Into<String>>(
     &self,
     script: S,
     callback: impl Fn(String) + Send + 'static,

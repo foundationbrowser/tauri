@@ -1972,6 +1972,32 @@ tauri::Builder::default()
       .map_err(Into::into)
   }
 
+  /// Evaluate JavaScript that has to wait for something on this webview, and
+  /// call back with what it waited for.
+  ///
+  /// The code is the body of an async function rather than an expression, so it
+  /// answers with `return` and may `await` on the way there. The resolved value
+  /// is serialized into a JSON string the same way [`Self::eval_with_callback`]
+  /// serializes its result. A value that will not serialize, a rejected promise
+  /// and a thrown exception all call back with an empty string.
+  ///
+  /// ## Platform-specific
+  ///
+  /// - **macOS / iOS**: needs macOS 11 or iOS 14.
+  /// - **Windows / Linux / Android**: unsupported, and says so rather than
+  ///   running a script that cannot answer.
+  pub fn eval_async_with_callback(
+    &self,
+    js: impl Into<String>,
+    callback: impl Fn(String) + Send + 'static,
+  ) -> crate::Result<()> {
+    self
+      .webview
+      .dispatcher
+      .eval_async_script_with_callback(js.into(), callback)
+      .map_err(Into::into)
+  }
+
   /// Register a JS event listener and return its identifier.
   pub(crate) fn listen_js(
     &self,
