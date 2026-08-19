@@ -366,6 +366,9 @@ pub struct WebviewAttributes {
   pub additional_browser_args: Option<String>,
   pub window_effects: Option<WindowEffectsConfig>,
   pub incognito: bool,
+  /// Whether media may start on its own. A webview opened to read a page
+  /// rather than to watch one has no business playing anything.
+  pub autoplay: bool,
   pub transparent: bool,
   pub focus: bool,
   pub bounds: Option<Rect>,
@@ -532,6 +535,7 @@ impl WebviewAttributes {
       additional_browser_args: None,
       window_effects: None,
       incognito: false,
+      autoplay: true,
       transparent: false,
       focus: true,
       bounds: None,
@@ -675,6 +679,13 @@ impl WebviewAttributes {
   #[must_use]
   pub fn incognito(mut self, incognito: bool) -> Self {
     self.incognito = incognito;
+    self
+  }
+
+  /// Whether media on this webview may start on its own.
+  #[must_use]
+  pub fn autoplay(mut self, autoplay: bool) -> Self {
+    self.autoplay = autoplay;
     self
   }
 

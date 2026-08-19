@@ -4854,6 +4854,7 @@ You may have it installed on another user account, but it is not available for t
     .with_transparent(webview_attributes.transparent)
     .with_accept_first_mouse(webview_attributes.accept_first_mouse)
     .with_incognito(webview_attributes.incognito)
+    .with_autoplay(webview_attributes.autoplay)
     .with_clipboard(webview_attributes.clipboard)
     .with_hotkeys_zoom(webview_attributes.zoom_hotkeys_enabled)
     .with_general_autofill_enabled(webview_attributes.general_autofill_enabled);

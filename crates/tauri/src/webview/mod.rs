@@ -1028,6 +1028,17 @@ fn main() {
   ///  - **Android**: Unsupported.
   ///  - **macOS / iOS**: Uses the nonPersistent DataStore
   #[must_use]
+  /// Whether media on this webview may start playing on its own.
+  ///
+  /// A webview opened to read a page rather than to watch one should say no:
+  /// a video that starts, and a sound that comes out of nowhere, are a page
+  /// being visited rather than read.
+  #[must_use]
+  pub fn autoplay(mut self, autoplay: bool) -> Self {
+    self.webview_attributes = self.webview_attributes.autoplay(autoplay);
+    self
+  }
+
   pub fn incognito(mut self, incognito: bool) -> Self {
     self.webview_attributes.incognito = incognito;
     self
