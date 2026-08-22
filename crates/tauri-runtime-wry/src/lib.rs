@@ -5049,21 +5049,32 @@ You may have it installed on another user account, but it is not available for t
 
   if let Some(download_handler) = pending.download_handler {
     let download_handler_ = download_handler.clone();
-    webview_builder = webview_builder.with_download_started_handler(move |url, path| {
-      if let Ok(url) = url.parse() {
+    webview_builder = webview_builder.with_download_started_handler(move |started, path| {
+      if let Ok(url) = started.url.parse() {
         download_handler_(DownloadEvent::Requested {
+          id: started.id,
           url,
+          suggested_filename: started.suggested_filename,
+          mime_type: started.mime_type,
+          expected_size: started.expected_size,
+          user_initiated: started.user_initiated,
           destination: path,
         })
       } else {
         false
       }
     });
-    webview_builder = webview_builder.with_download_completed_handler(move |url, path, success| {
-      if let Ok(url) = url.parse() {
-        download_handler(DownloadEvent::Finished { url, path, success });
-      }
-    });
+    webview_builder =
+      webview_builder.with_download_completed_handler(move |id, url, path, success| {
+        if let Ok(url) = url.parse() {
+          download_handler(DownloadEvent::Finished {
+            id,
+            url,
+            path,
+            success,
+          });
+        }
+      });
   }
 
   if let Some(page_load_handler) = pending.on_page_load_handler {

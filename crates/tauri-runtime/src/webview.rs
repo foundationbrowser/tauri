@@ -56,8 +56,18 @@ type InputAccessoryViewBuilderFn = dyn Fn(&objc2_ui_kit::UIView) -> Option<objc2
 pub enum DownloadEvent<'a> {
   /// Download requested.
   Requested {
+    /// Names this download until it ends, for progress and for cancelling.
+    id: u64,
     /// The url being downloaded.
     url: Url,
+    /// The name the response asked to be saved under, before any of it is trusted.
+    suggested_filename: String,
+    /// The content type the response carried, when it carried one.
+    mime_type: Option<String>,
+    /// The size the response said it would be, when it said.
+    expected_size: Option<u64>,
+    /// Whether a gesture on the page started this, rather than the page itself.
+    user_initiated: bool,
     /// Represents where the file will be downloaded to.
     /// Can be used to set the download location by assigning a new path to it.
     /// The assigned path _must_ be absolute.
@@ -65,6 +75,8 @@ pub enum DownloadEvent<'a> {
   },
   /// Download finished.
   Finished {
+    /// The id the download was requested under.
+    id: u64,
     /// The URL of the original download request.
     url: Url,
     /// Potentially representing the filesystem path the file was downloaded to.

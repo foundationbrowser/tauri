@@ -385,11 +385,11 @@ tauri::Builder::default()
     let webview_window = WebviewWindowBuilder::new(handle, "core", WebviewUrl::App("index.html".into()))
       .on_download(|webview, event| {
         match event {
-          DownloadEvent::Requested { url, destination } => {
+          DownloadEvent::Requested { url, destination, .. } => {
             println!("downloading {}", url);
             *destination = "/home/tauri/target/path".into();
           }
-          DownloadEvent::Finished { url, path, success } => {
+          DownloadEvent::Finished { url, path, success, .. } => {
             println!("downloaded {} to {:?}, success: {}", url, path, success);
           }
           _ => (),

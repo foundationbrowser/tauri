@@ -76,8 +76,34 @@ pub(crate) struct CreatedEvent {
 pub enum DownloadEvent<'a> {
   /// Download requested.
   Requested {
+    /// Names this download until it ends, for progress and for cancelling.
+    id: u64,
     /// The url being downloaded.
     url: Url,
+    /// The name the response asked to be saved under, before any of it is trusted.
+    ///
+    /// ## Platform-specific:
+    ///
+    /// - **Windows**: The file name of the destination the platform proposed.
+    suggested_filename: String,
+    /// The content type the response carried, when it carried one.
+    ///
+    /// ## Platform-specific:
+    ///
+    /// - **Linux / Windows**: Always `None`.
+    mime_type: Option<String>,
+    /// The size the response said it would be, when it said.
+    ///
+    /// ## Platform-specific:
+    ///
+    /// - **Linux / Windows**: Always `None`.
+    expected_size: Option<u64>,
+    /// Whether a gesture on the page started this, rather than the page itself.
+    ///
+    /// ## Platform-specific:
+    ///
+    /// - **Linux / Windows**: Always `true`.
+    user_initiated: bool,
     /// Represents where the file will be downloaded to.
     /// Can be used to set the download location by assigning a new path to it.
     /// The assigned path _must_ be absolute.
@@ -85,6 +111,8 @@ pub enum DownloadEvent<'a> {
   },
   /// Download finished.
   Finished {
+    /// The id the download was requested under.
+    id: u64,
     /// The URL of the original download request.
     url: Url,
     /// Potentially representing the filesystem path the file was downloaded to.
@@ -92,11 +120,6 @@ pub enum DownloadEvent<'a> {
     /// A value of `None` being passed instead of a `PathBuf` does not necessarily indicate that the download
     /// did not succeed, and may instead indicate some other failure - always check the third parameter if you need to
     /// know if the download succeeded.
-    ///
-    /// ## Platform-specific:
-    ///
-    /// - **macOS**: The second parameter indicating the path the file was saved to is always empty, due to API
-    ///   limitations.
     path: Option<PathBuf>,
     /// Indicates if the download succeeded or not.
     success: bool,
@@ -642,11 +665,11 @@ tauri::Builder::default()
     let webview_builder = WebviewBuilder::new("core", WebviewUrl::App("index.html".into()))
       .on_download(|webview, event| {
         match event {
-          DownloadEvent::Requested { url, destination } => {
+          DownloadEvent::Requested { url, destination, .. } => {
             println!("downloading {}", url);
             *destination = "/home/tauri/target/path".into();
           }
-          DownloadEvent::Finished { url, path, success } => {
+          DownloadEvent::Finished { url, path, success, .. } => {
             println!("downloaded {} to {:?}, success: {}", url, path, success);
           }
           _ => (),
@@ -779,12 +802,34 @@ tauri::Builder::default()
           download_handler(
             w,
             match event {
-              tauri_runtime::webview::DownloadEvent::Requested { url, destination } => {
-                DownloadEvent::Requested { url, destination }
-              }
-              tauri_runtime::webview::DownloadEvent::Finished { url, path, success } => {
-                DownloadEvent::Finished { url, path, success }
-              }
+              tauri_runtime::webview::DownloadEvent::Requested {
+                id,
+                url,
+                suggested_filename,
+                mime_type,
+                expected_size,
+                user_initiated,
+                destination,
+              } => DownloadEvent::Requested {
+                id,
+                url,
+                suggested_filename,
+                mime_type,
+                expected_size,
+                user_initiated,
+                destination,
+              },
+              tauri_runtime::webview::DownloadEvent::Finished {
+                id,
+                url,
+                path,
+                success,
+              } => DownloadEvent::Finished {
+                id,
+                url,
+                path,
+                success,
+              },
             },
           )
         } else {
