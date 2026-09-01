@@ -4951,6 +4951,7 @@ You may have it installed on another user account, but it is not available for t
       let response = new_window_handler(
         url,
         tauri_runtime::webview::NewWindowFeatures::new(
+          features.is_popup,
           features.size,
           features.position,
           tauri_runtime::webview::NewWindowOpener {
@@ -4978,6 +4979,37 @@ You may have it installed on another user account, but it is not available for t
             .clone();
 
           #[cfg(desktop)]
+          wry::NewWindowResponse::Create {
+            #[cfg(target_os = "macos")]
+            webview: wry::WebViewExtMacOS::webview(&*webview).as_super().into(),
+            #[cfg(any(
+              target_os = "linux",
+              target_os = "dragonfly",
+              target_os = "freebsd",
+              target_os = "netbsd",
+              target_os = "openbsd",
+            ))]
+            webview: webview.webview(),
+            #[cfg(windows)]
+            webview: webview.webview(),
+          }
+        }
+        #[cfg(desktop)]
+        tauri_runtime::webview::NewWindowResponse::CreateWebview {
+          window_id,
+          webview_label,
+        } => {
+          let windows = &context.main_thread.windows.0;
+          let webview = windows
+            .borrow()
+            .get(&window_id)
+            .unwrap()
+            .webviews
+            .iter()
+            .find(|webview| webview.label == webview_label)
+            .unwrap()
+            .clone();
+
           wry::NewWindowResponse::Create {
             #[cfg(target_os = "macos")]
             webview: wry::WebViewExtMacOS::webview(&*webview).as_super().into(),

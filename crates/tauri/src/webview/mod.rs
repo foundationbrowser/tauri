@@ -274,6 +274,11 @@ pub enum NewWindowResponse<R: Runtime> {
     /// Window that was created.
     window: crate::WebviewWindow<R>,
   },
+  /// Allow the window to be opened in the given embedded webview.
+  CreateWebview {
+    /// Webview that was created.
+    webview: crate::Webview<R>,
+  },
   /// Deny the window from being opened.
   Deny,
 }
@@ -761,6 +766,17 @@ tauri::Builder::default()
               window_id: window.window.window.id,
             }
           }
+          #[cfg(desktop)]
+          NewWindowResponse::CreateWebview { webview } => {
+            tauri_runtime::webview::NewWindowResponse::CreateWebview {
+              window_id: webview.window.lock().unwrap().window.id,
+              webview_label: webview.label().to_string(),
+            }
+          }
+          #[cfg(mobile)]
+          NewWindowResponse::CreateWebview { webview: _ } => {
+            tauri_runtime::webview::NewWindowResponse::Allow
+          }
           NewWindowResponse::Deny => tauri_runtime::webview::NewWindowResponse::Deny,
         },
       )
@@ -883,6 +899,18 @@ tauri::Builder::default()
     })?;
 
     Ok(webview)
+  }
+
+  /// Creates an embedded webview for a new-window request.
+  #[cfg(desktop)]
+  pub fn build_as_new_window(
+    self,
+    window: Window<R>,
+    position: Position,
+    size: Size,
+    features: NewWindowFeatures,
+  ) -> crate::Result<Webview<R>> {
+    self.window_features(features).build(window, position, size)
   }
 }
 
@@ -1379,6 +1407,34 @@ fn main() {
       .webview_attributes
       .webview_configuration
       .replace(webview_configuration);
+    self
+  }
+
+  fn window_features(mut self, features: NewWindowFeatures) -> Self {
+    #[cfg(target_os = "macos")]
+    {
+      self = self.with_webview_configuration(features.opener().target_configuration.clone());
+    }
+
+    #[cfg(all(feature = "wry", windows))]
+    {
+      self = self.with_environment(features.opener().environment.clone());
+    }
+
+    #[cfg(all(
+      feature = "wry",
+      any(
+        target_os = "linux",
+        target_os = "dragonfly",
+        target_os = "freebsd",
+        target_os = "netbsd",
+        target_os = "openbsd",
+      )
+    ))]
+    {
+      self = self.with_related_view(features.opener().webview.clone());
+    }
+
     self
   }
 }

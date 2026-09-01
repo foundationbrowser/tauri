@@ -144,6 +144,7 @@ pub struct NewWindowOpener {
 /// Window features of a window requested to open.
 #[derive(Debug)]
 pub struct NewWindowFeatures {
+  pub(crate) is_popup: bool,
   pub(crate) size: Option<crate::dpi::LogicalSize<f64>>,
   pub(crate) position: Option<crate::dpi::LogicalPosition<f64>>,
   pub(crate) opener: NewWindowOpener,
@@ -151,15 +152,21 @@ pub struct NewWindowFeatures {
 
 impl NewWindowFeatures {
   pub fn new(
+    is_popup: bool,
     size: Option<crate::dpi::LogicalSize<f64>>,
     position: Option<crate::dpi::LogicalPosition<f64>>,
     opener: NewWindowOpener,
   ) -> Self {
     Self {
+      is_popup,
       size,
       position,
       opener,
     }
+  }
+
+  pub fn is_popup(&self) -> bool {
+    self.is_popup
   }
 
   /// Specifies the size of the content area
@@ -192,6 +199,11 @@ pub enum NewWindowResponse {
   /// **Windows**: The webview must use the same environment as the caller webview. See [`WebviewAttributes::with_environment`].
   #[cfg(not(any(target_os = "android", target_os = "ios")))]
   Create { window_id: WindowId },
+  #[cfg(not(any(target_os = "android", target_os = "ios")))]
+  CreateWebview {
+    window_id: WindowId,
+    webview_label: String,
+  },
   /// Deny the window from being opened.
   Deny,
 }
